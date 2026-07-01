@@ -1,8 +1,8 @@
 #ifndef AGENT_H
 #define AGENT_H
 
-#include "vector_clock.h"
-#include "log_entry.h"
+#include "logagg.h"
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 
