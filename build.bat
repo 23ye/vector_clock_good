@@ -26,9 +26,13 @@ echo [CC] src/agent.c
 %CC% %CFLAGS% -c src/agent.c -o build/agent.o
 if errorlevel 1 goto :error
 
+echo [CC] src/server.c
+%CC% %CFLAGS% -c src/server.c -o build/server.o
+if errorlevel 1 goto :error
+
 REM Create static library
 echo [AR] liblogagg.a
-ar rcs build/liblogagg.a build/vector_clock.o build/log_entry.o build/agent.o
+ar rcs build/liblogagg.a build/vector_clock.o build/log_entry.o build/agent.o build/server.o
 if errorlevel 1 goto :error
 
 REM ==================== Compile Executables ====================
@@ -43,6 +47,10 @@ echo [CC] src/main_agent.c
 %CC% %CFLAGS% src/main_agent.c -Lbuild -llogagg %LDFLAGS% -o build/agent.exe
 if errorlevel 1 goto :error
 
+echo [CC] src/main_server.c
+%CC% %CFLAGS% src/main_server.c -Lbuild -llogagg %LDFLAGS% -o build/server.exe
+if errorlevel 1 goto :error
+
 echo.
 echo ==============================
 echo Build complete!
@@ -51,9 +59,11 @@ echo.
 echo Available executables:
 echo   build\test_vector_clock.exe  - Run unit tests
 echo   build\agent.exe              - Log collection agent
+echo   build\server.exe             - Aggregation server
 echo.
 echo Usage:
 echo   build\test_vector_clock.exe
+echo   build\server.exe -p 9999 -d ./logs
 echo   build\agent.exe -n node-01 -f app.log -s 127.0.0.1:9999
 echo.
 goto :end
