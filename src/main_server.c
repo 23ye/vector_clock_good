@@ -43,6 +43,8 @@ int main(int argc, char *argv[])
     /* 初始化配置 */
     memset(&config, 0, sizeof(config));
     config.port = 9999;  /* 默认端口 */
+    config.node_count = 3;   // 指定集群节点总数
+    config.timeout_ms = 2000;    // 加上超时兜底时间（2秒）
     strncpy(config.storage_dir, "./logs", sizeof(config.storage_dir) - 1);
 
     /* 解析命令行参数 */
@@ -68,7 +70,14 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-h") == 0) {
             print_usage(argv[0]);
             return 0;
-        } else {
+        }else if (strcmp(argv[i], "-c") == 0) {
+        if (i + 1 >= argc) {
+            fprintf(stderr, "Error: -c requires an argument\n");
+            return 1;
+            } 
+            config.node_count = atoi(argv[++i]);
+        }
+        else {
             fprintf(stderr, "Error: Unknown option '%s'\n", argv[i]);
             print_usage(argv[0]);
             return 1;

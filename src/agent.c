@@ -228,9 +228,10 @@ static int process_new_lines(agent_t *agent)
         if (agent_parse_line(line, &entry) == 0) {
             /* 设置节点 ID */
             strncpy(entry.node_id, agent->config.node_id, NODE_ID_MAX_LEN);
+            int my_node_idx = atoi(agent->config.node_id);
 
             /* 更新向量时钟 */
-            vc_increment(&agent->vc, 0);  /* 假设本节点 ID 为 0 */
+            vc_increment(&agent->vc, my_node_idx); 
             vc_copy(&entry.vc, &agent->vc);
 
             /* 设置序号 */

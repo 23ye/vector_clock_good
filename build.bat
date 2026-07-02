@@ -63,8 +63,8 @@ echo   build\server.exe             - Aggregation server
 echo.
 echo Usage:
 echo   build\test_vector_clock.exe
-echo   build\server.exe -p 9999 -d ./logs
-echo   build\agent.exe -n node-01 -f app.log -s 127.0.0.1:9999
+echo   build\server.exe -p 9999 -d ./logs -c 3
+echo   build\agent.exe -n 0 -f app.log -s 127.0.0.1:9999 -i 1000 -c 3
 echo.
 goto :end
 
