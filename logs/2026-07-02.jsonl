@@ -1,14 +1,8 @@
 {"node_id":"node-01","vector_clock":{"node-0":1,"node-1":0,"node-2":0},"timestamp":1782927620557,"level":"INFO","message":"05:00 INFO New log entry "}
 {"node_id":"node-01","vector_clock":{"node-0":2,"node-1":0,"node-2":0},"timestamp":1782927637718,"level":"INFO","message":"05:00 INFO New log entry "}
-{"node_id":"0","vector_clock":{"node-0":1,"node-1":0,"node-2":0},"timestamp":1782999716743,"level":"INFO","message":"Hello Causal Order "}
-{"node_id":"0","vector_clock":{"node-0":1,"node-1":0,"node-2":0},"timestamp":1783000835382,"level":"INFO","message":"This is a test in app_node1, the 3rd try. "}
-{"node_id":"1","vector_clock":{"node-0":0,"node-1":1,"node-2":0},"timestamp":1783000856807,"level":"INFO","message":"This is a test in app_node2, the 1st try. "}
-{"node_id":"2","vector_clock":{"node-0":0,"node-1":0,"node-2":1},"timestamp":1783000940435,"level":"INFO","message":"This is a test in app_node3, the 1st try. "}
-{"node_id":"2","vector_clock":{"node-0":0,"node-1":0,"node-2":2},"timestamp":1783000961602,"level":"INFO","message":"This is a test in app_node3, the 2nd try. "}
-{"node_id":"0","vector_clock":{"node-0":1,"node-1":0,"node-2":0},"timestamp":1783000980077,"level":"INFO","message":"This is a test in app_node1, the 4th try. "}
-{"node_id":"0","vector_clock":{"node-0":1,"node-1":0,"node-2":0},"timestamp":1783001115819,"level":"INFO","message":"This is a test in app_node1, the 4th try. "}
-{"node_id":"0","vector_clock":{"node-0":2,"node-1":0,"node-2":0},"timestamp":1783001168317,"level":"INFO","message":"This is a test in app_node1, the 5th try. "}
-{"node_id":"1","vector_clock":{"node-0":0,"node-1":1,"node-2":0},"timestamp":1783001239395,"level":"INFO","message":"This is a test in app_node2, the 2nd try. "}
-{"node_id":"2","vector_clock":{"node-0":0,"node-1":0,"node-2":1},"timestamp":1783001261260,"level":"INFO","message":"This is a test in app_node3, the 3rd try. "}
-{"node_id":"2","vector_clock":{"node-0":0,"node-1":0,"node-2":2},"timestamp":1783001312720,"level":"INFO","message":"This is a test in app_node3, the 4th try.  "}
-{"node_id":"2","vector_clock":{"node-0":0,"node-1":0,"node-2":3},"timestamp":1783001312720,"level":"INFO","message":"This is a test in app_node3, the 5th try. "}
+{"node_id":"node-01","vector_clock":{"node-0":1,"node-1":0,"node-2":0},"timestamp":1782997165120,"level":"INFO","message":"05:00 INFO New log entry from terminal "}
+{"node_id":"node-01","vector_clock":{"node-0":2,"node-1":0,"node-2":0},"timestamp":1782997167144,"level":"INFO","message":"05:00 INFO New log entry from terminal "}
+{"node_id":"node-01","vector_clock":{"node-0":3,"node-1":0,"node-2":0},"timestamp":1782997168154,"level":"INFO","message":"05:00 INFO New log entry from terminal "}
+{"node_id":"node-01","vector_clock":{"node-0":4,"node-1":0,"node-2":0},"timestamp":1782997168154,"level":"INFO","message":"05:00 INFO New log entry from terminal "}
+{"node_id":"node-01","vector_clock":{"node-0":5,"node-1":0,"node-2":0},"timestamp":1782997169170,"level":"INFO","message":"05:00 INFO New log entry from terminal "}
+{"node_id":"node-01","vector_clock":{"node-0":6,"node-1":0,"node-2":0},"timestamp":1782997169170,"level":"INFO","message":"05:00 INFO New log entry from terminal "}
