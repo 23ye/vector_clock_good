@@ -1,0 +1,2 @@
+{"node_id":"node-01","vector_clock":{"node-0":1,"node-1":0,"node-2":0},"timestamp":1782927620557,"level":"INFO","message":"05:00 INFO New log entry "}
+{"node_id":"node-01","vector_clock":{"node-0":2,"node-1":0,"node-2":0},"timestamp":1782927637718,"level":"INFO","message":"05:00 INFO New log entry "}
