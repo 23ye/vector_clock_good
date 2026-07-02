@@ -2,7 +2,7 @@
 REM LogAgg Build Script for Windows
 
 set CC=gcc
-set CFLAGS=-Wall -Wextra -Werror -std=c99 -g -O0 -I./include
+set CFLAGS=-Wall -Wextra -Werror -std=c99 -g -O0 -I./include 
 set LDFLAGS=-lws2_32
 
 echo Building LogAgg...
