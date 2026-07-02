@@ -1,2 +1,8 @@
 {"node_id":"node-01","vector_clock":{"node-0":1,"node-1":0,"node-2":0},"timestamp":1782927620557,"level":"INFO","message":"05:00 INFO New log entry "}
 {"node_id":"node-01","vector_clock":{"node-0":2,"node-1":0,"node-2":0},"timestamp":1782927637718,"level":"INFO","message":"05:00 INFO New log entry "}
+{"node_id":"node-01","vector_clock":{"node-0":1,"node-1":0,"node-2":0},"timestamp":1782997165120,"level":"INFO","message":"05:00 INFO New log entry from terminal "}
+{"node_id":"node-01","vector_clock":{"node-0":2,"node-1":0,"node-2":0},"timestamp":1782997167144,"level":"INFO","message":"05:00 INFO New log entry from terminal "}
+{"node_id":"node-01","vector_clock":{"node-0":3,"node-1":0,"node-2":0},"timestamp":1782997168154,"level":"INFO","message":"05:00 INFO New log entry from terminal "}
+{"node_id":"node-01","vector_clock":{"node-0":4,"node-1":0,"node-2":0},"timestamp":1782997168154,"level":"INFO","message":"05:00 INFO New log entry from terminal "}
+{"node_id":"node-01","vector_clock":{"node-0":5,"node-1":0,"node-2":0},"timestamp":1782997169170,"level":"INFO","message":"05:00 INFO New log entry from terminal "}
+{"node_id":"node-01","vector_clock":{"node-0":6,"node-1":0,"node-2":0},"timestamp":1782997169170,"level":"INFO","message":"05:00 INFO New log entry from terminal "}
