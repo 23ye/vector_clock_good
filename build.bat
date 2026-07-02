@@ -59,6 +59,14 @@ echo [CC] src/main_query.c
 %CC% %CFLAGS% src/main_query.c -Lbuild -llogagg -o build/query.exe
 if errorlevel 1 goto :error
 
+echo [CC] scripts/gen_log.c
+%CC% %CFLAGS% scripts/gen_log.c -o build/gen_log.exe
+if errorlevel 1 goto :error
+
+echo [CC] test/test_integration.c
+%CC% %CFLAGS% test/test_integration.c -Lbuild -llogagg -o build/test_integration.exe
+if errorlevel 1 goto :error
+
 echo.
 echo ==============================
 echo Build complete!
@@ -66,15 +74,19 @@ echo ==============================
 echo.
 echo Available executables:
 echo   build\test_vector_clock.exe  - Run unit tests
+echo   build\test_integration.exe   - Run integration tests
 echo   build\agent.exe              - Log collection agent
 echo   build\server.exe             - Aggregation server
 echo   build\query.exe              - Log query tool
+echo   build\gen_log.exe            - Log generator
 echo.
 echo Usage:
 echo   build\test_vector_clock.exe
+echo   build\test_integration.exe
 echo   build\server.exe -p 9999 -d ./logs
 echo   build\agent.exe -n node-01 -f app.log -s 127.0.0.1:9999
 echo   build\query.exe -d ./logs -k "error"
+echo   build\gen_log.exe -d ./logs -n 1 -c 3
 echo.
 goto :end
 
