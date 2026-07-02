@@ -19,6 +19,8 @@ typedef struct {
     uint16_t port;              /* 监听端口 */
     char storage_dir[256];      /* 日志存储目录 */
     int buffer_size;            /* 接收缓冲区大小 */
+    int node_count;             /* 系统中的总节点数，用于初始化全局向量时钟 */
+    uint64_t timeout_ms;        /* 乱序日志在内存中最大容忍的缓存等待时间（毫秒） */
 } server_config_t;
 
 /* Server 统计信息 */
@@ -29,6 +31,13 @@ typedef struct {
     uint64_t bytes_received;    /* 总接收字节数 */
 } server_stats_t;
 
+/* 内存因果缓冲区节点 */
+typedef struct log_buffer_node {
+    log_entry_t entry;              /* 日志实体 */
+    uint64_t arrival_time;          /* 抵达服务器的物理时间戳（用于超时兜底） */
+    struct log_buffer_node *next;   /* 链表下一节点 */
+} log_buffer_node_t;
+
 /* Server 状态 */
 typedef struct {
     server_config_t config;     /* 配置 */
@@ -37,6 +46,10 @@ typedef struct {
     char current_date[16];      /* 当前日期 (YYYY-MM-DD) */
     server_stats_t stats;       /* 统计信息 */
     bool running;               /* 运行状态 */
+
+    vector_clock_t committed_vc;     /* 已经安全写入磁盘的最高向量时钟（全局视图） */
+    log_buffer_node_t *buffer_head;  /* 内存未落盘日志链表（保持因果/时间序） */
+    int buffer_count;                /* 当前缓存日志数量 */
 } server_t;
 
 /*
