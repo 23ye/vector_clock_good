@@ -1,4 +1,5 @@
 #include "store.h"
+#include "i18n.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,26 +7,26 @@
 /* 打印使用说明 */
 static void print_usage(const char *prog_name)
 {
-    printf("LogAgg Query - Log Query Tool\n");
+    printf("LogAgg Query\n");
     printf("\n");
-    printf("Usage:\n");
+    printf(I18N_QUERY_USAGE ":\n");
     printf("  %s -d <dir> [options]\n", prog_name);
     printf("\n");
-    printf("Required:\n");
-    printf("  -d <dir>        Log storage directory\n");
+    printf(I18N_QUERY_REQUIRED ":\n");
+    printf("  -d <dir>        " I18N_SERVER_STORAGE "\n");
     printf("\n");
-    printf("Options:\n");
-    printf("  -k <keyword>    Filter by keyword\n");
-    printf("  -n <node_id>    Filter by node ID\n");
-    printf("  -l <level>      Filter by level (DEBUG/INFO/WARN/ERROR/FATAL)\n");
+    printf(I18N_QUERY_OPTIONS ":\n");
+    printf("  -k <keyword>    " I18N_QUERY_KEYWORD "\n");
+    printf("  -n <node_id>    " I18N_QUERY_NODE "\n");
+    printf("  -l <level>      " I18N_QUERY_LEVEL " (DEBUG/INFO/WARN/ERROR/FATAL)\n");
     printf("  -s <timestamp>  Start time (Unix ms)\n");
     printf("  -e <timestamp>  End time (Unix ms)\n");
-    printf("  -c <count>      Max results to show (default: 100)\n");
-    printf("  --sort <mode>   Sort mode: causal, time, node (default: causal)\n");
-    printf("  --stats         Show statistics only\n");
-    printf("  -h              Show this help message\n");
+    printf("  -c <count>      Max results (default: 100)\n");
+    printf("  --sort <mode>   " I18N_STORE_CAUSAL_SORT "/" I18N_STORE_TIME_SORT "/" I18N_STORE_NODE_SORT "\n");
+    printf("  --stats         " I18N_QUERY_STATISTICS "\n");
+    printf("  -h              " I18N_QUERY_USAGE "\n");
     printf("\n");
-    printf("Examples:\n");
+    printf(I18N_QUERY_EXAMPLES ":\n");
     printf("  %s -d ./logs\n", prog_name);
     printf("  %s -d ./logs -k \"error\"\n", prog_name);
     printf("  %s -d ./logs -n node-01 -l ERROR\n", prog_name);
@@ -42,9 +43,9 @@ static void print_stats(const log_store_t *store)
 
     store_get_stats(store, &total, node_counts, &node_count);
 
-    printf("\n========== Log Statistics ==========\n");
-    printf("  Total Logs: %d\n", total);
-    printf("\n  Logs by Node:\n");
+    printf("\n========== " I18N_QUERY_STATISTICS " ==========\n");
+    printf("  " I18N_STORE_TOTAL ": %d\n", total);
+    printf("\n  " I18N_QUERY_LOGS_BY_NODE ":\n");
 
     for (int i = 0; i < node_count && i < 32; i++) {
         if (node_counts[i] > 0) {
@@ -69,50 +70,50 @@ int main(int argc, char *argv[])
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-d") == 0) {
             if (i + 1 >= argc) {
-                fprintf(stderr, "Error: -d requires an argument\n");
+                fprintf(stderr, I18N_ERROR ": -d " I18N_ERR_MISSING_PARAM "\n");
                 return 1;
             }
             strncpy(storage_dir, argv[++i], sizeof(storage_dir) - 1);
         } else if (strcmp(argv[i], "-k") == 0) {
             if (i + 1 >= argc) {
-                fprintf(stderr, "Error: -k requires an argument\n");
+                fprintf(stderr, I18N_ERROR ": -k " I18N_ERR_MISSING_PARAM "\n");
                 return 1;
             }
             query.keyword = argv[++i];
         } else if (strcmp(argv[i], "-n") == 0) {
             if (i + 1 >= argc) {
-                fprintf(stderr, "Error: -n requires an argument\n");
+                fprintf(stderr, I18N_ERROR ": -n " I18N_ERR_MISSING_PARAM "\n");
                 return 1;
             }
             query.node_id = argv[++i];
         } else if (strcmp(argv[i], "-l") == 0) {
             if (i + 1 >= argc) {
-                fprintf(stderr, "Error: -l requires an argument\n");
+                fprintf(stderr, I18N_ERROR ": -l " I18N_ERR_MISSING_PARAM "\n");
                 return 1;
             }
             query.level = argv[++i];
         } else if (strcmp(argv[i], "-s") == 0) {
             if (i + 1 >= argc) {
-                fprintf(stderr, "Error: -s requires an argument\n");
+                fprintf(stderr, I18N_ERROR ": -s " I18N_ERR_MISSING_PARAM "\n");
                 return 1;
             }
             query.time_start = strtoull(argv[++i], NULL, 10);
         } else if (strcmp(argv[i], "-e") == 0) {
             if (i + 1 >= argc) {
-                fprintf(stderr, "Error: -e requires an argument\n");
+                fprintf(stderr, I18N_ERROR ": -e " I18N_ERR_MISSING_PARAM "\n");
                 return 1;
             }
             query.time_end = strtoull(argv[++i], NULL, 10);
         } else if (strcmp(argv[i], "-c") == 0) {
             if (i + 1 >= argc) {
-                fprintf(stderr, "Error: -c requires an argument\n");
+                fprintf(stderr, I18N_ERROR ": -c " I18N_ERR_MISSING_PARAM "\n");
                 return 1;
             }
             max_results = atoi(argv[++i]);
             if (max_results <= 0) max_results = 100;
         } else if (strcmp(argv[i], "--sort") == 0) {
             if (i + 1 >= argc) {
-                fprintf(stderr, "Error: --sort requires an argument\n");
+                fprintf(stderr, I18N_ERROR ": --sort " I18N_ERR_MISSING_PARAM "\n");
                 return 1;
             }
             i++;
@@ -123,7 +124,7 @@ int main(int argc, char *argv[])
             } else if (strcmp(argv[i], "node") == 0) {
                 sort_mode = SORT_NODE;
             } else {
-                fprintf(stderr, "Error: Unknown sort mode '%s'\n", argv[i]);
+                fprintf(stderr, I18N_ERROR ": " I18N_ERR_INVALID_PARAM " '%s'\n", argv[i]);
                 return 1;
             }
         } else if (strcmp(argv[i], "--stats") == 0) {
@@ -132,7 +133,7 @@ int main(int argc, char *argv[])
             print_usage(argv[0]);
             return 0;
         } else {
-            fprintf(stderr, "Error: Unknown option '%s'\n", argv[i]);
+            fprintf(stderr, I18N_ERROR ": " I18N_ERR_INVALID_PARAM " '%s'\n", argv[i]);
             print_usage(argv[0]);
             return 1;
         }
@@ -140,7 +141,7 @@ int main(int argc, char *argv[])
 
     /* 检查必需参数 */
     if (storage_dir[0] == '\0') {
-        fprintf(stderr, "Error: Storage directory (-d) is required\n");
+        fprintf(stderr, I18N_ERROR ": " I18N_SERVER_STORAGE " (-d) " I18N_ERR_MISSING_PARAM "\n");
         print_usage(argv[0]);
         return 1;
     }
@@ -152,20 +153,20 @@ int main(int argc, char *argv[])
     }
 
     /* 加载日志 */
-    printf("Loading logs from %s...\n", storage_dir);
+    printf(I18N_STORE_LOADING " %s...\n", storage_dir);
     int loaded = store_load_dir(&store, storage_dir);
-    printf("Loaded %d logs\n", loaded);
+    printf(I18N_STORE_LOADED " %d " I18N_SERVER_LOGS "\n", loaded);
 
     if (loaded == 0) {
-        printf("No logs found.\n");
+        printf(I18N_STORE_NO_LOGS ".\n");
         store_cleanup(&store);
         return 0;
     }
 
     /* 排序 */
-    printf("Sorting logs (%s)...\n",
-           sort_mode == SORT_CAUSAL ? "causal" :
-           sort_mode == SORT_TIME ? "time" : "node");
+    printf(I18N_STORE_SORTING " (%s)...\n",
+           sort_mode == SORT_CAUSAL ? I18N_STORE_CAUSAL_SORT :
+           sort_mode == SORT_TIME ? I18N_STORE_TIME_SORT : I18N_STORE_NODE_SORT);
 
     switch (sort_mode) {
         case SORT_CAUSAL:
@@ -175,7 +176,6 @@ int main(int argc, char *argv[])
             store_sort_by_time(&store);
             break;
         case SORT_NODE:
-            /* store_sort_by_node not exposed in header, use time */
             store_sort_by_time(&store);
             break;
     }
@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
     /* 查询 */
     log_entry_t **results = malloc(max_results * sizeof(log_entry_t *));
     if (!results) {
-        fprintf(stderr, "Error: Failed to allocate results array\n");
+        fprintf(stderr, I18N_ERROR ": " I18N_ERR_ALLOC_MEMORY "\n");
         store_cleanup(&store);
         return 1;
     }
@@ -199,11 +199,11 @@ int main(int argc, char *argv[])
 
     /* 打印结果 */
     if (result_count > 0) {
-        printf("\nQuery Results:\n");
-        printf("  Keyword: %s\n", query.keyword ? query.keyword : "(any)");
-        printf("  Node:    %s\n", query.node_id ? query.node_id : "(any)");
-        printf("  Level:   %s\n", query.level ? query.level : "(any)");
-        printf("  Results: %d\n\n", result_count);
+        printf("\n" I18N_QUERY_RESULTS ":\n");
+        printf("  " I18N_QUERY_KEYWORD ": %s\n", query.keyword ? query.keyword : I18N_QUERY_ANY);
+        printf("  " I18N_QUERY_NODE ":    %s\n", query.node_id ? query.node_id : I18N_QUERY_ANY);
+        printf("  " I18N_QUERY_LEVEL ":   %s\n", query.level ? query.level : I18N_QUERY_ANY);
+        printf("  " I18N_STORE_TOTAL ":   %d\n\n", result_count);
 
         printf("%-5s | %-23s | %-5s | %-8s | %-15s | %s\n",
                "Index", "Timestamp", "Level", "Node", "Vector Clock", "Message");
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
             store_print_entry(results[i], i);
         }
     } else {
-        printf("\nNo matching logs found.\n");
+        printf("\n" I18N_QUERY_NO_RESULTS ".\n");
     }
 
     /* 清理 */
