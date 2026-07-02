@@ -1,6 +1,0 @@
-.vscode/
-build/
-.gitignore
-*.txt
-*.exe
-Makefile
