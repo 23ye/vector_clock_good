@@ -80,6 +80,15 @@ int store_append(log_store_t *store, const log_entry_t *entry)
 {
     if (!store || !entry) return -1;
 
+    /* 基于节点ID和向量时钟(Vector Clock)做全局日志去重检查 */
+    for (int i = 0; i < store->count; i++) {
+        if (strcmp(store->entries[i].node_id, entry->node_id) == 0) {
+            if (vc_compare(&store->entries[i].vc, &entry->vc) == VC_EQUAL) {
+                return 0; 
+            }
+        }
+    }
+
     /* 检查是否需要扩容 */
     if (store->count >= store->capacity) {
         if (store_expand(store) != 0) {
@@ -121,6 +130,9 @@ int store_load_file(log_store_t *store, const char *filepath)
 
         /* 解析 JSON */
         log_entry_t entry;
+
+
+
         if (log_entry_from_json(&entry, line) == 0) {
             if (store_append(store, &entry) == 0) {
                 loaded++;
@@ -450,6 +462,101 @@ int store_query_by_index(const log_store_t *store, const char *query_str, bool i
 
     if (final_pl.entry_indices) free(final_pl.entry_indices);
     return match_count;
+}
+
+/* 因果依赖关系的最小生成边判断：
+ * 为了防止图里的线密密麻麻（因为 A->B, B->C 会导致 A->C 产生冗余边），
+ * 我们可以只连接“直接”偏序（即中间没有其他事件隔离）的两个日志。
+ */
+int store_export_dot(const log_store_t *store, const char *filepath) {
+    if (!store || !filepath || store->count == 0) return -1;
+
+    FILE *fp = fopen(filepath, "w");
+    if (!fp) {
+        fprintf(stderr, "Error: Cannot open file %s for writing\n", filepath);
+        return -1;
+    }
+
+    // 1. 写入 DOT 图头部配置
+    fprintf(fp, "digraph G {\n");
+    fprintf(fp, "    rankdir=LR;\n"); // 从左到右布局
+    fprintf(fp, "    node [shape=box, fontname=\"Courier\", fontsize=10];\n");
+    fprintf(fp, "    edge [color=\"#2b579a\", arrowhead=normal, arrowsize=0.8];\n\n");
+
+    // 2. 按节点分组绘制节点（使用子图 cluster 区分机器环境）
+    // 为了防止重名，我们将日志索引作为图节点的唯一 ID：event_0, event_1...
+    // int total_nodes = 0;
+    // int node_processed[32] = {0}; // 假设最大32个节点
+
+    for (int i = 0; i < store->count; i++) {
+        const char *curr_node = store->entries[i].node_id;
+        
+        // 简单提取节点名字，避免重复为同一个 cluster 重写头部
+        // 查找是否已经为此节点开辟过 subgraph
+        bool first_seen = true;
+        for(int k=0; k<i; k++) {
+            if(strcmp(store->entries[k].node_id, curr_node) == 0) {
+                first_seen = false;
+                break;
+            }
+        }
+
+        if (first_seen) {
+            if (i > 0) fprintf(fp, "    }\n"); // 关闭上一个 cluster
+            fprintf(fp, "    subgraph \"cluster_%s\" {\n", curr_node);
+            fprintf(fp, "        label=\"Node: %s\";\n", curr_node);
+            fprintf(fp, "        color=gray; style=dashed;\n");
+        }
+
+        // 把日志的关键 Message 缩短（防止图块过大）
+        char msg_summary[32];
+        strncpy(msg_summary, store->entries[i].message, 28);
+        msg_summary[28] = '\0';
+        if (strlen(store->entries[i].message) > 28) strcat(msg_summary, "...");
+
+        // 打印每个日志点节点
+        fprintf(fp, "        event_%d [label=\"[%s]\\n%s\"];\n", 
+                i, LOG_LEVEL_STR(store->entries[i].level), msg_summary);
+    }
+    if (store->count > 0) fprintf(fp, "    }\n\n"); // 关闭最后一个 cluster
+
+    // 3. 计算因果边 (两两进行向量时钟偏序比对)
+    fprintf(fp, "    // Causal Dependency Edges\n");
+    for (int i = 0; i < store->count; i++) {
+        for (int j = 0; j < store->count; j++) {
+            if (i == j) continue;
+            
+            // 运用之前实现的 vc_compare 算法
+            // 如果日志 i Happens-Before 日志 j
+            if (vc_compare(&store->entries[i].vc, &store->entries[j].vc) == VC_HAPPENS_BEFORE) {
+                
+                // 【可选优化：规避传递冗余边】
+                // 检查是否存在一个中间媒介 k，使得 i -> k 且 k -> j。如果有，则 i -> j 是一条冗余长线，不打印。
+                bool is_direct = true;
+                for (int k = 0; k < store->count; k++) {
+                    if (k == i || k == j) continue;
+                    if (vc_compare(&store->entries[i].vc, &store->entries[k].vc) == VC_HAPPENS_BEFORE &&
+                        vc_compare(&store->entries[k].vc, &store->entries[j].vc) == VC_HAPPENS_BEFORE) {
+                        is_direct = false;
+                        break;
+                    }
+                }
+
+                if (is_direct) {
+                    // 如果跨节点，可以用虚线或者其他颜色高亮显示
+                    if (strcmp(store->entries[i].node_id, store->entries[j].node_id) != 0) {
+                        fprintf(fp, "    event_%d -> event_%d [style=dashed, color=\"#e51400\", label=\"RPC\"];\n", i, j);
+                    } else {
+                        fprintf(fp, "    event_%d -> event_%d;\n", i, j);
+                    }
+                }
+            }
+        }
+    }
+
+    fprintf(fp, "}\n");
+    fclose(fp);
+    return 0;
 }
 
 /* 检查日志是否匹配查询条件 */

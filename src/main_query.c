@@ -35,6 +35,8 @@ static void print_usage(const char *prog_name)
     printf("\n");
     printf("  --or            使用关键词 [OR] 组合查询 (默认是 AND 组合)\n");
     printf("\n");
+    printf("  --dot <file>    将日志因果依赖链导出为 Graphviz DOT 拓扑图\n");
+    printf("\n");
 }
 
 /* 打印统计信息 */
@@ -69,6 +71,7 @@ int main(int argc, char *argv[])
     sort_mode_t sort_mode = SORT_CAUSAL;
     bool stats_only = false;
     bool is_and_mode = true; /* 默认为 AND 组合 */
+    char *dot_output_path = NULL;
 
     /* 解析命令行参数 */
     for (int i = 1; i < argc; i++) {
@@ -138,7 +141,9 @@ int main(int argc, char *argv[])
             return 0;
         } else if (strcmp(argv[i], "--or") == 0) { 
             is_and_mode = false;
-        } else {
+        }else if (strcmp(argv[i], "--dot") == 0) {
+            if (i + 1 < argc) dot_output_path = argv[++i];
+        }else {
             fprintf(stderr, I18N_ERROR ": " I18N_ERR_INVALID_PARAM " '%s'\n", argv[i]);
             print_usage(argv[0]);
             return 1;
@@ -237,6 +242,13 @@ int main(int argc, char *argv[])
         }
     } else {
         printf("\n" I18N_QUERY_NO_RESULTS ".\n");
+    }
+
+    if (dot_output_path) {
+        if (store_export_dot(&store, dot_output_path) == 0) {
+            printf("\n[Success] The causal dependency network has been successfully exported to: %s\n", dot_output_path);
+            printf("Hint: You can use the command 'dot -Tpng %s -o causal.png' to generate an image.\n", dot_output_path);
+        }
     }
 
     /* 清理 */
