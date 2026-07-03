@@ -170,6 +170,13 @@ void store_build_index(log_store_t *store);
 int store_query_by_index(const log_store_t *store, const char *query_str, bool is_and_mode, 
                          log_entry_t **results, int max_count);
 
+/* * 将当前日志库中的因果依赖链导出为 Graphviz DOT 文件
+ * @param store     存储指针
+ * @param filepath  导出的 .dot 文件路径（例如 "causal_graph.dot"）
+ * @return 0 成功，-1 失败
+ */
+int store_export_dot(const log_store_t *store, const char *filepath);
+
 /* * 退出前释放倒排索引词典及 Posting List 占用的动态内存，防止内存泄漏
  * @param store 存储指针
  */
