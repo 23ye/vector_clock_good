@@ -92,6 +92,24 @@ echo.
 %BUILD%\query.exe -d %LOGS_DIR% -k "info" --or --sort causal -c 20
 
 echo.
+echo [Step 11] Exporting and Rendering Causal Dependency Graph...
+echo.
+
+%BUILD%\query.exe -d %LOGS_DIR% --sort causal --dot "%DEMO_DIR%\causal_network.dot"
+
+where dot >nul 2>1
+if errorlevel 1 (
+    echo [Prompt] It has been detected that Graphviz is not installed locally or added to the environment variables.
+    echo        Successfully generated text description script: %DEMO_DIR%\causal_network.dot
+    echo        You can copy its content to https://dreampuf.github.io/GraphvizOnline for online preview!
+) else (
+    echo [Prompt] Rendering causal dependency graph with Graphviz...
+    dot -Tpng "%DEMO_DIR%\causal_network.dot" -o "%DEMO_DIR%\causal.png"
+    echo [Success] Causal dependency graph has been rendered successfully!
+    echo        Image saved to: %DEMO_DIR%\causal.png
+)
+
+echo.
 echo ========================================
 echo   Demo Complete!
 echo ========================================
