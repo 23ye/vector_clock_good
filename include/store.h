@@ -182,4 +182,8 @@ int store_export_dot(const log_store_t *store, const char *filepath);
  */
 void store_index_cleanup(log_store_t *store);
 
+/* 新增：LZ4 透明压缩与解压模块声明                                   */
+int store_save_compressed(const char *filepath, const char *raw_data, size_t raw_size);
+char* store_load_compressed(const char *filepath, size_t *out_raw_size);
+
 #endif /* STORE_H */

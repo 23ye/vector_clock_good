@@ -6,16 +6,16 @@ digraph G {
     subgraph "cluster_node-01" {
         label="Node: node-01";
         color=gray; style=dashed;
-        event_0 [label="[INFO]\n22:55 INFO  Request received..."];
-        event_1 [label="[INFO]\n22:55 INFO  Calling node-02 ..."];
-        event_2 [label="[INFO]\n22:55 INFO  Received respons..."];
-        event_3 [label="[INFO]\n22:55 INFO  Sending result t..."];
-        event_4 [label="[INFO]\n22:55 INFO  Request complete..."];
-        event_5 [label="[INFO]\n22:55 INFO  Request received..."];
-        event_6 [label="[INFO]\n22:55 INFO  Calling node-02 ..."];
-        event_7 [label="[INFO]\n22:55 INFO  Received respons..."];
-        event_8 [label="[INFO]\n22:56 INFO  Sending result t..."];
-        event_9 [label="[INFO]\n22:56 INFO  Request complete..."];
+        event_0 [label="[INFO]\n57:07 INFO  Request received..."];
+        event_1 [label="[INFO]\n57:07 INFO  Calling node-02 ..."];
+        event_2 [label="[INFO]\n57:07 INFO  Received respons..."];
+        event_3 [label="[INFO]\n57:07 INFO  Sending result t..."];
+        event_4 [label="[INFO]\n57:07 INFO  Request complete..."];
+        event_5 [label="[INFO]\n57:07 INFO  Request received..."];
+        event_6 [label="[INFO]\n57:07 INFO  Calling node-02 ..."];
+        event_7 [label="[INFO]\n57:08 INFO  Received respons..."];
+        event_8 [label="[INFO]\n57:08 INFO  Sending result t..."];
+        event_9 [label="[INFO]\n57:08 INFO  Request complete..."];
     }
 
     // Causal Dependency Edges

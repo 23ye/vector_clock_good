@@ -34,9 +34,13 @@ echo [CC] src/store.c
 %CC% %CFLAGS% -c src/store.c -o build/store.o
 if errorlevel 1 goto :error
 
+echo [CC] src/lz4.c
+%CC% %CFLAGS% -c src/lz4.c -o build/lz4.o
+if errorlevel 1 goto :error
+
 REM Create static library
 echo [AR] liblogagg.a
-ar rcs build/liblogagg.a build/vector_clock.o build/log_entry.o build/agent.o build/server.o build/store.o
+ar rcs build/liblogagg.a build/vector_clock.o build/log_entry.o build/agent.o build/server.o build/store.o build/lz4.o
 if errorlevel 1 goto :error
 
 REM ==================== Compile Executables ====================

@@ -1,4 +1,5 @@
 #include "store.h"
+#include "lz4.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -109,6 +110,52 @@ int store_load_file(log_store_t *store, const char *filepath)
 {
     if (!store || !filepath) return -1;
 
+    size_t raw_size = 0;
+    int loaded = 0;
+
+    // 尝试进行透明解压读取
+    char *decompressed_data = store_load_compressed(filepath, &raw_size);
+
+    if (decompressed_data) {
+        char *line_ptr = decompressed_data;
+        char *next_line = NULL;
+
+        // 模拟 fgets 在内存缓冲区中安全切割每一行文本
+        while (line_ptr && *line_ptr != '\0') {
+            next_line = strchr(line_ptr, '\n');
+            if (next_line) {
+                *next_line = '\0'; // 临时截断换行符，变成标准 C 字符串
+            }
+
+            // 去掉 Windows 特有的 \r 换行符
+            size_t len = strlen(line_ptr);
+            if (len > 0 && line_ptr[len - 1] == '\r') {
+                line_ptr[len - 1] = '\0';
+            }
+
+            // 跳过空行
+            if (line_ptr[0] != '\0') {
+                log_entry_t entry;
+                // 调用你原本的解析函数
+                if (log_entry_from_json(&entry, line_ptr) == 0) {
+                    if (store_append(store, &entry) == 0) { // 内部带去重
+                        loaded++;
+                    }
+                }
+            }
+
+            if (next_line) {
+                line_ptr = next_line + 1; // 滚到下一行起始位置
+            } else {
+                break;
+            }
+        }
+
+        free(decompressed_data); // 记得释放 store_load_compressed 内部 malloc 的解压池
+        return loaded;
+    }
+
+    // 如果不是 LZ4 压缩文件，下降降级到原有的普通纯文本 JSONL 流
     FILE *fp = fopen(filepath, "r");
     if (!fp) {
         /* 文件不存在不是错误 */
@@ -116,7 +163,7 @@ int store_load_file(log_store_t *store, const char *filepath)
     }
 
     char line[LOGAGG_MAX_ENTRY_SIZE];
-    int loaded = 0;
+
 
     while (fgets(line, sizeof(line), fp)) {
         /* 跳过空行 */
@@ -130,8 +177,6 @@ int store_load_file(log_store_t *store, const char *filepath)
 
         /* 解析 JSON */
         log_entry_t entry;
-
-
 
         if (log_entry_from_json(&entry, line) == 0) {
             if (store_append(store, &entry) == 0) {
@@ -557,6 +602,93 @@ int store_export_dot(const log_store_t *store, const char *filepath) {
     fprintf(fp, "}\n");
     fclose(fp);
     return 0;
+}
+
+/* * 压缩落盘：将内存中的大字符串（如拼接好的所有JSON日志）压缩写入文件
+ */
+int store_save_compressed(const char *filepath, const char *raw_data, size_t raw_size) {
+    if (!filepath || !raw_data || raw_size == 0) return -1;
+
+    // 1. 计算 LZ4 压缩所需的最大安全缓冲区大小
+    int max_dst_size = LZ4_compressBound((int)raw_size);
+    char *compressed_buf = malloc(max_dst_size);
+    if (!compressed_buf) return -1;
+
+    // 2. 执行压缩
+    int compressed_size = LZ4_compress_default(raw_data, compressed_buf, (int)raw_size, max_dst_size);
+    if (compressed_size <= 0) {
+        free(compressed_buf);
+        return -1;
+    }
+
+    // 3. 写入文件 (格式：[RawSize (4B)] + [CompSize (4B)] + [Data])
+    FILE *fp = fopen(filepath, "wb"); // 必须是 wb 模式
+    if (!fp) {
+        free(compressed_buf);
+        return -1;
+    }
+
+    uint32_t header_raw = (uint32_t)raw_size;
+    uint32_t header_comp = (uint32_t)compressed_size;
+
+    fwrite(&header_raw, sizeof(uint32_t), 1, fp);
+    fwrite(&header_comp, sizeof(uint32_t), 1, fp);
+    fwrite(compressed_buf, 1, compressed_size, fp);
+
+    fclose(fp);
+    free(compressed_buf);
+    return 0;
+}
+
+/* * 透明解压：读取压缩文件，在内存中还原出完整的原始字符串
+ * @return 还原后的字符串指针 (使用后需 free)，失败返回 NULL
+ */
+char* store_load_compressed(const char *filepath, size_t *out_raw_size) {
+    if (!filepath || !out_raw_size) return NULL;
+
+    FILE *fp = fopen(filepath, "rb"); // 必须是 rb 模式
+    if (!fp) return NULL;
+
+    // 1. 读取 8 字节的文件头
+    uint32_t raw_size = 0;
+    uint32_t compressed_size = 0;
+    if (fread(&raw_size, sizeof(uint32_t), 1, fp) != 1 ||
+        fread(&compressed_size, sizeof(uint32_t), 1, fp) != 1) {
+        fclose(fp);
+        return NULL;
+    }
+
+    // 2. 申请对应的内存缓冲区
+    char *compressed_buf = malloc(compressed_size);
+    char *raw_buf = malloc(raw_size + 1); // +1 用于格式化为 C 字符串 \0
+    if (!compressed_buf || !raw_buf) {
+        fclose(fp);
+        free(compressed_buf);
+        free(raw_buf);
+        return NULL;
+    }
+
+    // 3. 读取压缩的二进制流
+    if (fread(compressed_buf, 1, compressed_size, fp) != compressed_size) {
+        fclose(fp);
+        free(compressed_buf);
+        free(raw_buf);
+        return NULL;
+    }
+    fclose(fp);
+
+    // 4. 调用 LZ4 解压还原
+    int decompress_result = LZ4_decompress_safe(compressed_buf, raw_buf, (int)compressed_size, (int)raw_size);
+    free(compressed_buf);
+
+    if (decompress_result < 0) {
+        free(raw_buf);
+        return NULL; // 解压失败
+    }
+
+    raw_buf[raw_size] = '\0'; // 闭合字符串
+    *out_raw_size = raw_size;
+    return raw_buf;
 }
 
 /* 检查日志是否匹配查询条件 */
