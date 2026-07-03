@@ -80,6 +80,18 @@ echo.
 %BUILD%\query.exe -d %LOGS_DIR% --stats
 
 echo.
+echo [Step 9] Querying logs with Inverted Index (AND Mode)...
+echo   Keyword: "request completed successfully" (Must contain BOTH terms)
+echo.
+%BUILD%\query.exe -d %LOGS_DIR% -k "request completed successfully" --sort causal -c 20
+
+echo.
+echo [Step 10] Querying logs with Inverted Index (OR Mode)...
+echo   Keyword: "info" (Contains EITHER term)
+echo.
+%BUILD%\query.exe -d %LOGS_DIR% -k "info" --or --sort causal -c 20
+
+echo.
 echo ========================================
 echo   Demo Complete!
 echo ========================================

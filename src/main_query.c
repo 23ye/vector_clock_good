@@ -32,6 +32,9 @@ static void print_usage(const char *prog_name)
     printf("  %s -d ./logs -n node-01 -l ERROR\n", prog_name);
     printf("  %s -d ./logs --sort time -c 50\n", prog_name);
     printf("  %s -d ./logs --stats\n", prog_name);
+    printf("\n");
+    printf("  --or            使用关键词 [OR] 组合查询 (默认是 AND 组合)\n");
+    printf("\n");
 }
 
 /* 打印统计信息 */
@@ -65,6 +68,7 @@ int main(int argc, char *argv[])
     int max_results = 100;
     sort_mode_t sort_mode = SORT_CAUSAL;
     bool stats_only = false;
+    bool is_and_mode = true; /* 默认为 AND 组合 */
 
     /* 解析命令行参数 */
     for (int i = 1; i < argc; i++) {
@@ -132,6 +136,8 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-h") == 0) {
             print_usage(argv[0]);
             return 0;
+        } else if (strcmp(argv[i], "--or") == 0) { 
+            is_and_mode = false;
         } else {
             fprintf(stderr, I18N_ERROR ": " I18N_ERR_INVALID_PARAM " '%s'\n", argv[i]);
             print_usage(argv[0]);
@@ -157,11 +163,17 @@ int main(int argc, char *argv[])
     int loaded = store_load_dir(&store, storage_dir);
     printf(I18N_STORE_LOADED " %d " I18N_SERVER_LOGS "\n", loaded);
 
+    if (store_load_dir(&store, storage_dir) < 0) {
+        return 1;
+    }
+
     if (loaded == 0) {
         printf(I18N_STORE_NO_LOGS ".\n");
         store_cleanup(&store);
         return 0;
     }
+
+    store_build_index(&store);/* 为所有加载进内存的 message 字段建立倒排索引词典 */
 
     /* 排序 */
     printf(I18N_STORE_SORTING " (%s)...\n",
@@ -176,7 +188,7 @@ int main(int argc, char *argv[])
             store_sort_by_time(&store);
             break;
         case SORT_NODE:
-            store_sort_by_time(&store);
+            store_sort_by_node(&store);
             break;
     }
 
@@ -191,11 +203,22 @@ int main(int argc, char *argv[])
     log_entry_t **results = malloc(max_results * sizeof(log_entry_t *));
     if (!results) {
         fprintf(stderr, I18N_ERROR ": " I18N_ERR_ALLOC_MEMORY "\n");
+        store_index_cleanup(&store);
         store_cleanup(&store);
         return 1;
     }
 
-    int result_count = store_query(&store, &query, results, max_results);
+    //int result_count = store_query(&store, &query, results, max_results);
+    int result_count = 0;
+
+    /* 判断是否走倒排索引组合查询 */
+    if (query.keyword && strlen(query.keyword) > 0) {
+        // 使用倒排索引流进行 And/Or 高效检索
+        result_count = store_query_by_index(&store, query.keyword, is_and_mode, results, max_results);
+    } else {
+        // 原有的普通无索引条件查询
+        result_count = store_query(&store, &query, results, max_results);
+    }
 
     /* 打印结果 */
     if (result_count > 0) {
@@ -218,6 +241,7 @@ int main(int argc, char *argv[])
 
     /* 清理 */
     free(results);
+    store_index_cleanup(&store);
     store_cleanup(&store);
 
     return 0;

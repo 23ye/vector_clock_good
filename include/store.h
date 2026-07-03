@@ -7,6 +7,8 @@
 
 /* 日志池初始容量 */
 #define STORE_INIT_CAPACITY 1024
+#define MAX_TERM_LEN 64
+#define INDEX_INIT_CAPACITY 128
 
 /* 查询条件 */
 typedef struct {
@@ -24,12 +26,33 @@ typedef enum {
     SORT_NODE       /* 按节点排序 */
 } sort_mode_t;
 
+/* 倒排表：存储包含某个单词的所有日志项的内部索引 (数组下标) */
+typedef struct {
+    int *entry_indices;  /* 动态数组，存储 store->entries 的下标 */
+    int count;           /* 当前记录的日志数量 */
+    int capacity;        /* 动态数组容量 */
+} posting_list_t;
+
+/* 词典节点：关联单词与其倒排表 */
+typedef struct {
+    char term[MAX_TERM_LEN];
+    posting_list_t posting;
+} index_entry_t;
+
+/* 倒排索引主结构 */
+typedef struct {
+    index_entry_t *dict; /* 词典数组 */
+    int count;           /* 词典中唯一单词的数量 */
+    int capacity;        /* 词典容量 */
+} inverted_index_t;
+
 /* 日志存储 */
 typedef struct {
     log_entry_t *entries;       /* 日志数组 */
     int count;                  /* 当前日志数 */
     int capacity;               /* 数组容量 */
     bool sorted;                /* 是否已排序 */
+    inverted_index_t index;     /* 倒排索引 */
 } log_store_t;
 
 /*
@@ -82,6 +105,12 @@ void store_sort_causal(log_store_t *store);
 void store_sort_by_time(log_store_t *store);
 
 /*
+ * 按节点排序
+ * @param store 存储指针
+ */
+void store_sort_by_node(log_store_t *store);
+
+/*
  * 查询日志
  * @param store     存储指针
  * @param query     查询条件
@@ -124,5 +153,26 @@ void store_get_stats(const log_store_t *store, int *total,
  * @return true 匹配，false 不匹配
  */
 bool store_match_query(const log_entry_t *entry, const query_t *query);
+
+/* * 为所有加载进内存的 message 字段建立倒排索引词典 
+ * @param store 存储指针
+ */
+void store_build_index(log_store_t *store);
+
+/* * 倒排索引高效 And/Or 组合查询核心接口
+ * @param store        存储指针
+ * @param query_str    组合关键词字符串 (如 "connect timeout")
+ * @param is_and_mode  true 为 AND 模式，false 为 OR 模式
+ * @param results      输出的结果数组
+ * @param max_count    最大结果数限制
+ * @return 匹配命中的日志条数
+ */
+int store_query_by_index(const log_store_t *store, const char *query_str, bool is_and_mode, 
+                         log_entry_t **results, int max_count);
+
+/* * 退出前释放倒排索引词典及 Posting List 占用的动态内存，防止内存泄漏
+ * @param store 存储指针
+ */
+void store_index_cleanup(log_store_t *store);
 
 #endif /* STORE_H */
