@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <windows.h>
 
 /* 打印使用说明 */
 static void print_usage(const char *prog_name)
@@ -166,11 +167,14 @@ int main(int argc, char *argv[])
     /* 加载日志 */
     printf(I18N_STORE_LOADING " %s...\n", storage_dir);
     int loaded = store_load_dir(&store, storage_dir);
-    printf(I18N_STORE_LOADED " %d " I18N_SERVER_LOGS "\n", loaded);
-
-    if (store_load_dir(&store, storage_dir) < 0) {
+    if (loaded < 0) {
         return 1;
     }
+    printf(I18N_STORE_LOADED " %d " I18N_SERVER_LOGS "\n", loaded);
+
+    // if (store_load_dir(&store, storage_dir) < 0) {
+    //     return 1;
+    // }
 
     if (loaded == 0) {
         printf(I18N_STORE_NO_LOGS ".\n");
@@ -205,7 +209,7 @@ int main(int argc, char *argv[])
     }
 
     /* 查询 */
-    log_entry_t **results = malloc(max_results * sizeof(log_entry_t *));
+    log_entry_t **results = malloc(store.count * sizeof(log_entry_t *));
     if (!results) {
         fprintf(stderr, I18N_ERROR ": " I18N_ERR_ALLOC_MEMORY "\n");
         store_index_cleanup(&store);
@@ -218,11 +222,43 @@ int main(int argc, char *argv[])
 
     /* 判断是否走倒排索引组合查询 */
     if (query.keyword && strlen(query.keyword) > 0) {
+        printf("[Test] Starting inverted index keyword query: '%s'\n", query.keyword);
+
+        // 1. 初始化高精度计时器
+        LARGE_INTEGER frequency;
+        LARGE_INTEGER start_time, end_time;
+        QueryPerformanceFrequency(&frequency);
+        QueryPerformanceCounter(&start_time); // 记录开始时间
         // 使用倒排索引流进行 And/Or 高效检索
-        result_count = store_query_by_index(&store, query.keyword, is_and_mode, results, max_results);
+        result_count = store_query_by_index(&store, query.keyword, is_and_mode, results, store.count);
+        QueryPerformanceCounter(&end_time); // 💾 记录结束时间
+
+        // 3. 计算耗时（单位：毫秒 ms）
+        double elapsed_ms = (double)(end_time.QuadPart - start_time.QuadPart) * 1000.0 / frequency.QuadPart;
+
+        printf("\n========================================\n");
+        printf(" Performance benchmark test results \n");
+        printf("========================================\n");
+        printf("  Test dataset size          : %d \n", store.count);
+        printf("  Number of hits in search   : %d \n", result_count);
+        printf("  Core query latency         : %.3f ms\n", elapsed_ms);
+    
+        // 4. 判定是否达标
+        if (elapsed_ms < 100.0) {
+            printf("  PASSED \n");
+        } else {
+            printf("   FAILED \n");
+        }
+        printf("========================================\n");
     } else {
         // 原有的普通无索引条件查询
-        result_count = store_query(&store, &query, results, max_results);
+        result_count = store_query(&store, &query, results, store.count);
+    }
+
+    /* 在最终输出和打印前，强行做数量截断 (Truncation) */
+    int display_count = result_count;
+    if (display_count > max_results) {
+        display_count = max_results; // 👈 在这里将结果数截断到你传入的 -c 20 条
     }
 
     /* 打印结果 */
@@ -237,7 +273,7 @@ int main(int argc, char *argv[])
                "Index", "Timestamp", "Level", "Node", "Vector Clock", "Message");
         printf("------+-------------------------+-------+----------+-----------------+--------\n");
 
-        for (int i = 0; i < result_count; i++) {
+        for (int i = 0; i < display_count; i++) {
             store_print_entry(results[i], i);
         }
     } else {

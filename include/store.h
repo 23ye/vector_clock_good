@@ -9,6 +9,7 @@
 #define STORE_INIT_CAPACITY 1024
 #define MAX_TERM_LEN 64
 #define INDEX_INIT_CAPACITY 128
+#define DEDUP_HASH_SIZE 65536
 
 /* 查询条件 */
 typedef struct {
@@ -46,6 +47,18 @@ typedef struct {
     int capacity;        /* 词典容量 */
 } inverted_index_t;
 
+// 哈希表节点结构
+typedef struct hash_node {
+    char node_id[64];           // 对应 log_entry_t 中的 node_id
+    vector_clock_t vc;          // 对应 log_entry_t 中的 vc (假设你的类型名叫这个)
+    struct hash_node *next;     // 冲突链表指针
+} hash_node_t;
+
+// 哈希表管理器
+typedef struct {
+    hash_node_t **buckets;
+} dedup_hash_t;
+
 /* 日志存储 */
 typedef struct {
     log_entry_t *entries;       /* 日志数组 */
@@ -53,6 +66,7 @@ typedef struct {
     int capacity;               /* 数组容量 */
     bool sorted;                /* 是否已排序 */
     inverted_index_t index;     /* 倒排索引 */
+    dedup_hash_t *dedup_hash;   /* 哈希表 */
 } log_store_t;
 
 /*
@@ -182,8 +196,13 @@ int store_export_dot(const log_store_t *store, const char *filepath);
  */
 void store_index_cleanup(log_store_t *store);
 
-/* 新增：LZ4 透明压缩与解压模块声明                                   */
+/* LZ4 透明压缩与解压模块声明                                   */
 int store_save_compressed(const char *filepath, const char *raw_data, size_t raw_size);
 char* store_load_compressed(const char *filepath, size_t *out_raw_size);
+
+/* 声明哈希表的管理函数 */
+dedup_hash_t* dedup_hash_create(void);
+void dedup_hash_destroy(dedup_hash_t *h);
+bool dedup_hash_check_and_insert(dedup_hash_t *h, const char *node_id, const vector_clock_t *vc);
 
 #endif /* STORE_H */

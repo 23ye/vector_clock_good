@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
     memset(&config, 0, sizeof(config));
     config.port = 9999;  /* 默认端口 */
     config.node_count = 3;   // 指定集群节点总数
-    config.timeout_ms = 2000;    // 加上超时兜底时间（2秒）
+    config.timeout_ms = 1000;    // 加上超时兜底时间（1秒）
     strncpy(config.storage_dir, "./logs", sizeof(config.storage_dir) - 1);
 
     /* 解析命令行参数 */

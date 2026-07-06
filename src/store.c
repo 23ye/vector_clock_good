@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -23,6 +24,11 @@ int store_init(log_store_t *store)
         return -1;
     }
 
+    store->dedup_hash = dedup_hash_create();
+    if (!store->dedup_hash) {
+        return -1;
+    }
+
     store->count = 0;
     store->capacity = STORE_INIT_CAPACITY;
     store->sorted = false;
@@ -38,6 +44,11 @@ void store_cleanup(log_store_t *store)
     if (store->entries) {
         free(store->entries);
         store->entries = NULL;
+    }
+
+    if (store->dedup_hash) {
+        dedup_hash_destroy(store->dedup_hash);
+        store->dedup_hash = NULL;
     }
 
     store->count = 0;
@@ -76,19 +87,103 @@ static int store_expand(log_store_t *store)
     return 0;
 }
 
+// 初始化哈希表
+dedup_hash_t* dedup_hash_create() {
+    dedup_hash_t *h = malloc(sizeof(dedup_hash_t));
+    if (!h) return NULL;
+    h->buckets = calloc(DEDUP_HASH_SIZE, sizeof(hash_node_t*));
+    if (!h->buckets) {
+        free(h);
+        return NULL;
+    }
+    return h;
+}
+
+// 计算混合哈希值 (FNV-1a 算法)
+static uint32_t calculate_hash(const char *node_id, const vector_clock_t *vc) {
+    uint32_t hash = 2166136261U;
+    
+    // 哈希 node_id 字符串
+    while (*node_id) {
+        hash ^= (unsigned char)*node_id++;
+        hash *= 16777619U;
+    }
+    
+    // 哈希 vector_clock 内存块
+    const unsigned char *p = (const unsigned char*)vc;
+    for (size_t i = 0; i < sizeof(vector_clock_t); i++) {
+        hash ^= p[i];
+        hash *= 16777619U;
+    }
+    
+    return hash & (DEDUP_HASH_SIZE - 1); // 映射到桶范围
+}
+
+// 检查是否存在，若不存在则直接插入 (保证原子判定，减少二次遍历)
+// 返回 true 表示已存在（重复），返回 false 表示不存在（新日志）
+bool dedup_hash_check_and_insert(dedup_hash_t *h, const char *node_id, const vector_clock_t *vc) {
+    if (!h) return false;
+    
+    uint32_t idx = calculate_hash(node_id, vc);
+    hash_node_t *curr = h->buckets[idx];
+    
+    // 遍历冲突链表检查是否重复
+    while (curr) {
+        if (strcmp(curr->node_id, node_id) == 0 && 
+            vc_compare(&curr->vc, vc) == VC_EQUAL) {
+            return true; // 找到了完全一致的记录，说明重复了
+        }
+        curr = curr->next;
+    }
+    
+    // 未找到重复，说明是新日志，创建节点插入链表头部
+    hash_node_t *new_node = malloc(sizeof(hash_node_t));
+    if (new_node) {
+        strncpy(new_node->node_id, node_id, sizeof(new_node->node_id) - 1);
+        new_node->node_id[sizeof(new_node->node_id) - 1] = '\0';
+        memcpy(&new_node->vc, vc, sizeof(vector_clock_t));
+        
+        // 头插法
+        new_node->next = h->buckets[idx];
+        h->buckets[idx] = new_node;
+    }
+    
+    return false; 
+}
+
+// 销毁哈希表，释放内存
+void dedup_hash_destroy(dedup_hash_t *h) {
+    if (!h) return;
+    for (int i = 0; i < DEDUP_HASH_SIZE; i++) {
+        hash_node_t *curr = h->buckets[i];
+        while (curr) {
+            hash_node_t *tmp = curr->next;
+            free(curr);
+            curr = tmp;
+        }
+    }
+    free(h->buckets);
+    free(h);
+}
+
 /* 添加日志条目 */
 int store_append(log_store_t *store, const log_entry_t *entry)
 {
     if (!store || !entry) return -1;
 
-    /* 基于节点ID和向量时钟(Vector Clock)做全局日志去重检查 */
-    for (int i = 0; i < store->count; i++) {
-        if (strcmp(store->entries[i].node_id, entry->node_id) == 0) {
-            if (vc_compare(&store->entries[i].vc, &entry->vc) == VC_EQUAL) {
-                return 0; 
-            }
-        }
+    /* 用哈希表替代原有的全局 O(N) 遍历查重 */
+    if (dedup_hash_check_and_insert(store->dedup_hash, entry->node_id, &entry->vc)) {
+        return 0; // 返回 0 表示去重成功，不计入 store->count
     }
+
+    /* 基于节点ID和向量时钟(Vector Clock)做全局日志去重检查 */
+    // for (int i = 0; i < store->count; i++) {
+    //     if (strcmp(store->entries[i].node_id, entry->node_id) == 0) {
+    //         if (vc_compare(&store->entries[i].vc, &entry->vc) == VC_EQUAL) {
+    //             return 0; 
+    //         }
+    //     }
+    // }
 
     /* 检查是否需要扩容 */
     if (store->count >= store->capacity) {
@@ -656,6 +751,14 @@ char* store_load_compressed(const char *filepath, size_t *out_raw_size) {
         fread(&compressed_size, sizeof(uint32_t), 1, fp) != 1) {
         fclose(fp);
         return NULL;
+    }
+
+    /* 新增安全保护墙：防止把普通文本日志误当成压缩包 */
+    // 如果解压大小或者压缩大小超过了 500MB (500 * 1024 * 1024)，或者压缩体积比原始体积还大
+    // 这在正常的 LZ4 块里是不可能的，说明它是一个普通 JSON 文本文件！
+    if (raw_size > 524288000 || compressed_size > 524288000 || compressed_size == 0) {
+        fclose(fp);
+        return NULL; // 立即拒绝，退回到普通文本读取流
     }
 
     // 2. 申请对应的内存缓冲区
