@@ -1,0 +1,11 @@
+{
+  "node_id": "string",
+  "vector_clock": {
+    "node-0": "int",
+    "node-1": "int",
+    "node-2": "int"
+  },
+  "timestamp": "int64",
+  "level": "string",
+  "message": "string"
+}

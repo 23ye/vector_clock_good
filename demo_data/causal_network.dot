@@ -1,0 +1,31 @@
+digraph G {
+    rankdir=LR;
+    node [shape=box, fontname="Courier", fontsize=10];
+    edge [color="#2b579a", arrowhead=normal, arrowsize=0.8];
+
+    subgraph "cluster_node-01" {
+        label="Node: node-01";
+        color=gray; style=dashed;
+        event_0 [label="[INFO]\n52:08 INFO  Request received..."];
+        event_1 [label="[INFO]\n52:08 INFO  Calling node-02 ..."];
+        event_2 [label="[INFO]\n52:08 INFO  Received respons..."];
+        event_3 [label="[INFO]\n52:08 INFO  Sending result t..."];
+        event_4 [label="[INFO]\n52:08 INFO  Request complete..."];
+        event_5 [label="[INFO]\n52:08 INFO  Request received..."];
+        event_6 [label="[INFO]\n52:08 INFO  Calling node-02 ..."];
+        event_7 [label="[INFO]\n52:08 INFO  Received respons..."];
+        event_8 [label="[INFO]\n52:09 INFO  Sending result t..."];
+        event_9 [label="[INFO]\n52:09 INFO  Request complete..."];
+    }
+
+    // Causal Dependency Edges
+    event_0 -> event_1;
+    event_1 -> event_2;
+    event_2 -> event_3;
+    event_3 -> event_4;
+    event_4 -> event_5;
+    event_5 -> event_6;
+    event_6 -> event_7;
+    event_7 -> event_8;
+    event_8 -> event_9;
+}
