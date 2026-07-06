@@ -12,6 +12,17 @@ set BUILD=%ROOT%\build
 set TEST_DATA_DIR=%ROOT%\testlogs
 set TARGET_FILE=%TEST_DATA_DIR%\testlogs.jsonl
 
+echo [Step 0] Generating 1,000,000 logs...
+
+set GEN_DIR=%TEST_DATA_DIR%
+
+if not exist "%GEN_DIR%" mkdir "%GEN_DIR%"
+
+%BUILD%\generate_jsonl.exe "%GEN_DIR%"
+
+echo Log generation completed.
+echo ---------------------------------------------------
+
 if not exist "%TARGET_FILE%" (
     echo [Error] "testlogs.jsonl" not found in the %TEST_DATA_DIR% folder!
     echo        Please ensure that the million test data entries are placed in this path.

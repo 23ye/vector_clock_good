@@ -14,6 +14,7 @@ set BUILD=%ROOT%\build
 set SCRIPTS=%ROOT%\scripts
 set DEMO_DIR=%ROOT%\demo_data
 set LOGS_DIR=%DEMO_DIR%\logs
+set TEST_DIR=%ROOT%\testlogs
 
 REM Clean previous demo data
 if exist "%DEMO_DIR%" rmdir /s /q "%DEMO_DIR%"

@@ -71,6 +71,10 @@ echo [CC] test/test_integration.c
 %CC% %CFLAGS% test/test_integration.c -Lbuild -llogagg -o build/test_integration.exe
 if errorlevel 1 goto :error
 
+echo [CC] testlogs/generate_jsonl.c
+%CC% %CFLAGS% testlogs/generate_jsonl.c -o build/generate_jsonl.exe
+if errorlevel 1 goto :error
+
 echo.
 echo ==============================
 echo Build complete!
@@ -83,6 +87,7 @@ echo   build\agent.exe              - Log collection agent
 echo   build\server.exe             - Aggregation server
 echo   build\query.exe              - Log query tool
 echo   build\gen_log.exe            - Log generator
+echo   build\generate_jsonl.exe     - JSONL log generator
 echo.
 echo Usage:
 echo   build\test_vector_clock.exe
