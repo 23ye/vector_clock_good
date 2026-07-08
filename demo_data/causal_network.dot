@@ -6,36 +6,36 @@ digraph G {
     subgraph "cluster_node-01" {
         label="Node: node-01";
         color=gray; style=dashed;
-        event_0 [label="[INFO]\n33:39 INFO  Request received..."];
-        event_1 [label="[INFO]\n33:39 INFO  Calling node-02 ..."];
-        event_2 [label="[INFO]\n33:39 INFO  Received respons..."];
-        event_3 [label="[INFO]\n33:39 INFO  Sending result t..."];
-        event_4 [label="[INFO]\n33:39 INFO  Request complete..."];
-        event_5 [label="[INFO]\n33:39 INFO  Request received..."];
-        event_6 [label="[INFO]\n33:39 INFO  Calling node-02 ..."];
-        event_7 [label="[INFO]\n33:39 INFO  Received respons..."];
-        event_8 [label="[INFO]\n33:40 INFO  Sending result t..."];
-        event_9 [label="[INFO]\n33:40 INFO  Request complete..."];
+        event_0 [label="[INFO]\n09:15 INFO  Request received..."];
+        event_1 [label="[INFO]\n09:15 INFO  Calling node-02 ..."];
+        event_2 [label="[INFO]\n09:15 INFO  Received respons..."];
+        event_3 [label="[INFO]\n09:15 INFO  Sending result t..."];
+        event_4 [label="[INFO]\n09:15 INFO  Request complete..."];
+        event_5 [label="[INFO]\n09:15 INFO  Request received..."];
+        event_6 [label="[INFO]\n09:15 INFO  Calling node-02 ..."];
+        event_7 [label="[INFO]\n09:15 INFO  Received respons..."];
+        event_8 [label="[INFO]\n09:16 INFO  Sending result t..."];
+        event_9 [label="[INFO]\n09:16 INFO  Request complete..."];
     }
     subgraph "cluster_node-02" {
         label="Node: node-02";
         color=gray; style=dashed;
-        event_10 [label="[INFO]\n33:40 INFO  Processing user ..."];
-        event_11 [label="[INFO]\n33:40 WARN  Cache miss, quer..."];
-        event_12 [label="[INFO]\n33:40 INFO  User found: id=1..."];
-        event_13 [label="[INFO]\n33:41 INFO  Processing user ..."];
-        event_14 [label="[INFO]\n33:41 WARN  Cache miss, quer..."];
-        event_15 [label="[INFO]\n33:41 INFO  User found: id=1..."];
+        event_10 [label="[INFO]\n09:16 INFO  Processing user ..."];
+        event_11 [label="[INFO]\n09:16 WARN  Cache miss, quer..."];
+        event_12 [label="[INFO]\n09:16 INFO  User found: id=1..."];
+        event_13 [label="[INFO]\n09:17 INFO  Processing user ..."];
+        event_14 [label="[INFO]\n09:17 WARN  Cache miss, quer..."];
+        event_15 [label="[INFO]\n09:17 INFO  User found: id=1..."];
     }
     subgraph "cluster_node-03" {
         label="Node: node-03";
         color=gray; style=dashed;
-        event_16 [label="[INFO]\n33:41 INFO  Logging request ..."];
-        event_17 [label="[INFO]\n33:41 DEBUG  Log entry saved..."];
-        event_18 [label="[INFO]\n33:42 INFO  Audit trail upda..."];
-        event_19 [label="[INFO]\n33:42 INFO  Logging request ..."];
-        event_20 [label="[INFO]\n33:42 DEBUG  Log entry saved..."];
-        event_21 [label="[INFO]\n33:42 INFO  Audit trail upda..."];
+        event_16 [label="[INFO]\n09:17 INFO  Logging request ..."];
+        event_17 [label="[INFO]\n09:17 DEBUG  Log entry saved..."];
+        event_18 [label="[INFO]\n09:17 INFO  Audit trail upda..."];
+        event_19 [label="[INFO]\n09:18 INFO  Logging request ..."];
+        event_20 [label="[INFO]\n09:18 DEBUG  Log entry saved..."];
+        event_21 [label="[INFO]\n09:18 INFO  Audit trail upda..."];
     }
 
     // Causal Dependency Edges
