@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <time.h>
 
 #ifdef _WIN32
@@ -228,7 +229,24 @@ static int process_new_lines(agent_t *agent)
         if (agent_parse_line(line, &entry) == 0) {
             /* 设置节点 ID */
             strncpy(entry.node_id, agent->config.node_id, NODE_ID_MAX_LEN);
-            int my_node_idx = atoi(agent->config.node_id);
+
+            /* 从 node_id 中提取数字索引（如 "node-01" -> 0, "node-02" -> 1）
+             * 向量时钟使用 0-based 索引，所以减 1
+             * 回退策略：如果找不到数字，使用 node_id 字符串的哈希值取模 */
+            int my_node_idx = 0;
+            const char *p = agent->config.node_id;
+            while (*p && !isdigit((unsigned char)*p)) p++;
+            if (*p) {
+                my_node_idx = atoi(p) - 1;  /* 1-based -> 0-based */
+                if (my_node_idx < 0) my_node_idx = 0;
+            } else {
+                /* 回退：用字符串哈希 */
+                unsigned hash = 0;
+                for (const char *s = agent->config.node_id; *s; s++) {
+                    hash = hash * 31 + (unsigned char)*s;
+                }
+                my_node_idx = (int)(hash % 32);
+            }
 
             /* 更新向量时钟 */
             vc_increment(&agent->vc, my_node_idx); 
