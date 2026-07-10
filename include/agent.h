@@ -77,7 +77,7 @@ int agent_send_log(agent_t *agent, const log_entry_t *entry);
  * @param entry  输出的日志条目
  * @return 0 成功，-1 失败
  */
-int agent_parse_line(const char *line, log_entry_t *entry);
+int agent_parse_line(const char *line, log_entry_t *entry, int *parsed_vc);
 
 /*
  * 初始化网络 (Windows 需要)

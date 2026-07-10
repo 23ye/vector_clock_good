@@ -33,14 +33,15 @@ static void get_timestamp(char *buf, size_t buflen)
              t->tm_hour, t->tm_min, t->tm_sec);
 }
 
-/* 写入单条日志 */
+/* 写入单条日志（文件中携带向量时钟，供 Agent 解析同步） */
 static void write_log(FILE *fp, const char *node_id, int vc[],
                       const char *level, const char *message)
 {
     char ts[32];
     get_timestamp(ts, sizeof(ts));
 
-    fprintf(fp, "%s %s  %s\n", ts, level, message);
+    /* 文件格式: [VC:x,y,z] timestamp level  message */
+    fprintf(fp, "[VC:%d,%d,%d] %s %s  %s\n", vc[0], vc[1], vc[2], ts, level, message);
     fflush(fp);
 
     printf("[%s] VC=[%d,%d,%d] %s %s\n",
