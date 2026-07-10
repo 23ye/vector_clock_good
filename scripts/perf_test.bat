@@ -34,10 +34,24 @@ echo [Step 1] The testing environment is ready, and we are preparing to load the
 echo Loading %TARGET_FILE% and building memory inverted index, please wait ..
 echo ---------------------------------------------------
 
-echo [TestCase] Retrieve sparse/low-frequency keywords (expected latency: ^< 5ms)
+echo [TestCase 1] Retrieve sparse/low-frequency keywords (expected latency: ^< 5ms)
 echo Keyword: "calling" 
 echo.
 %BUILD%\query.exe -d "%TEST_DATA_DIR%" -k "calling" --sort causal -c 20
+echo.
+echo ---------------------------------------------------
+
+echo [TestCase 2] Retrieve sparse/low-frequency keywords (expected latency: ^< 5ms)
+echo Keyword: "logging" 
+echo.
+%BUILD%\query.exe -d "%TEST_DATA_DIR%" -k "logging" --sort causal -c 20
+echo.
+echo ---------------------------------------------------
+
+echo [TestCase 3] Retrieve sparse/low-frequency keywords (expected latency: ^< 5ms)
+echo Keyword: "node" 
+echo.
+%BUILD%\query.exe -d "%TEST_DATA_DIR%" -k "node" --sort causal -c 20
 echo.
 echo ---------------------------------------------------
 

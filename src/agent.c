@@ -123,17 +123,52 @@ int agent_send_log(agent_t *agent, const log_entry_t *entry)
 
 /* 解析日志行
  * 支持的格式:
- *   2024-06-29 10:00:01 INFO  Request started
- *   2024-06-29 10:00:01.123 ERROR Something failed
+ *   [VC:1,2,3] 2024-06-29 10:00:01 INFO  Request started  (带向量时钟前缀)
+ *   2024-06-29 10:00:01 INFO  Request started              (无前缀)
  *   [INFO] Request started
  *   INFO: Request started
+ *
+ * 如果 parsed_vc 非空且日志行包含 [VC:...]，则填入解析到的向量时钟值
  */
-int agent_parse_line(const char *line, log_entry_t *entry)
+int agent_parse_line(const char *line, log_entry_t *entry, int *parsed_vc)
 {
     if (!line || !entry) return -1;
 
     /* 跳过空行 */
     if (line[0] == '\0' || line[0] == '\n') return -1;
+
+    const char *content = line;
+    int vc_local[3] = {0, 0, 0};
+    bool has_vc = false;
+
+    /* 尝试解析 [VC:x,y,z] 前缀 */
+    if (strncmp(content, "[VC:", 4) == 0) {
+        int a, b, c;
+        if (sscanf(content + 4, "%d,%d,%d", &a, &b, &c) == 3) {
+            vc_local[0] = a;
+            vc_local[1] = b;
+            vc_local[2] = c;
+            has_vc = true;
+            /* 跳过 ']' 之后的内容 */
+            const char *bracket = strchr(content, ']');
+            if (bracket) {
+                content = bracket + 1;
+                /* 跳过空格 */
+                while (*content == ' ') content++;
+            }
+        }
+    }
+
+    /* 输出解析到的向量时钟 */
+    if (parsed_vc) {
+        if (has_vc) {
+            parsed_vc[0] = vc_local[0];
+            parsed_vc[1] = vc_local[1];
+            parsed_vc[2] = vc_local[2];
+        } else {
+            parsed_vc[0] = parsed_vc[1] = parsed_vc[2] = -1;  /* 标记未解析到 */
+        }
+    }
 
     char level_str[16] = {0};
     char message[LOG_MESSAGE_MAX_LEN + 1] = {0};
@@ -141,7 +176,7 @@ int agent_parse_line(const char *line, log_entry_t *entry)
 
     /* 尝试解析格式: "2024-06-29 10:00:01 INFO  Message" */
     int year, month, day, hour, min, sec, ms = 0;
-    int parsed = sscanf(line, "%d-%d-%d %d:%d:%d.%d %15s %[^\n]",
+    int parsed = sscanf(content, "%d-%d-%d %d:%d:%d.%d %15s %[^\n]",
                         &year, &month, &day, &hour, &min, &sec, &ms,
                         level_str, message);
 
@@ -158,14 +193,14 @@ int agent_parse_line(const char *line, log_entry_t *entry)
         timestamp = (uint64_t)mktime(&t) * 1000 + ms;
     } else {
         /* 尝试解析格式: "[INFO] Message" 或 "INFO: Message" */
-        parsed = sscanf(line, "[%15[^]]] %[^\n]", level_str, message);
+        parsed = sscanf(content, "[%15[^]]] %[^\n]", level_str, message);
         if (parsed < 2) {
-            parsed = sscanf(line, "%15[^:]: %[^\n]", level_str, message);
+            parsed = sscanf(content, "%15[^:]: %[^\n]", level_str, message);
         }
         if (parsed < 2) {
             /* 无法解析，整行作为 message，级别默认 INFO */
             strncpy(level_str, "INFO", sizeof(level_str) - 1);
-            strncpy(message, line, LOG_MESSAGE_MAX_LEN);
+            strncpy(message, content, LOG_MESSAGE_MAX_LEN);
             /* 去掉末尾换行符 */
             size_t len = strlen(message);
             if (len > 0 && message[len - 1] == '\n') {
@@ -224,9 +259,10 @@ static int process_new_lines(agent_t *agent)
     int count = 0;
 
     while (fgets(line, sizeof(line), agent->log_fp)) {
-        /* 解析日志行 */
+        /* 解析日志行（提取向量时钟前缀） */
         log_entry_t entry;
-        if (agent_parse_line(line, &entry) == 0) {
+        int parsed_vc[3] = {-1, -1, -1};
+        if (agent_parse_line(line, &entry, parsed_vc) == 0) {
             /* 设置节点 ID */
             strncpy(entry.node_id, agent->config.node_id, NODE_ID_MAX_LEN);
 
@@ -248,8 +284,17 @@ static int process_new_lines(agent_t *agent)
                 my_node_idx = (int)(hash % 32);
             }
 
+            /* 如果日志行携带了向量时钟，只合并其他节点的分量（跳过自己的，避免重复计数） */
+            if (parsed_vc[0] >= 0) {
+                for (int i = 0; i < 3; i++) {
+                    if (i != my_node_idx && (uint64_t)parsed_vc[i] > agent->vc.clocks[i]) {
+                        agent->vc.clocks[i] = (uint64_t)parsed_vc[i];
+                    }
+                }
+            }
+
             /* 更新向量时钟 */
-            vc_increment(&agent->vc, my_node_idx); 
+            vc_increment(&agent->vc, my_node_idx);
             vc_copy(&entry.vc, &agent->vc);
 
             /* 设置序号 */
